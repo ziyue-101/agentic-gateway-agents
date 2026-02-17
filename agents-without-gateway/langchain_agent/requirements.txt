@@ -1,0 +1,6 @@
+streamlit
+httpx
+langchain
+langchain-core
+langchain-google-genai
+langchain-mcp-adapters

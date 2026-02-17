@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agent-system-ns
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: adk-agent-sa
+  namespace: agent-system-ns
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gemini-agent
+  namespace: agent-system-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gemini-agent
+  template:
+    metadata:
+      labels:
+        app: gemini-agent
+    spec:
+      serviceAccountName: adk-agent-sa
+      containers:
+        - name: gemini-agent
+          image: ziyue123/mcp-agent:latest
+          imagePullPolicy: Always
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "1"
+              ephemeral-storage: "128Mi"
+            requests:
+              memory: "512Mi"
+              cpu: "1"
+              ephemeral-storage: "128Mi"
+          ports:
+            - containerPort: 8501
+          env:
+            - name: PORT
+              value: "8051"
+            - name: GOOGLE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: google-secret
+                  key: google-api-key
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gemini-agent-svc
+  namespace: agent-system-ns
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 80
+      targetPort: 8501
+  selector:
+    app: gemini-agent

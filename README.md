@@ -41,19 +41,13 @@ Token Efficiency:
 
 MCP reduces "context bloat" by providing standardized tool definitions that don't need to be re-sent in every prompt. It is built for large contexts (e.g., 100k+ tokens), useful for document-heavy tasks.
 
-Superior Tool Use: 
+Superior Tool Use: Claude-3.5 and 4.0 are natively trained on MCP, resulting in the lowest "hallucination rate" for API calls.
 
-Claude-3.5 and 4.0 are natively trained on MCP, resulting in the lowest "hallucination rate" for API calls.
-
-Safety-first design: 
-
-Security model and permissioning mechanisms help mitigate agent risks.
+Safety-first design: Security model and permissioning mechanisms help mitigate agent risks.
 
 **Limitations:**
 
-No Native Orchestrator: 
-
-Anthropic SDK provides the "tools" but not the Orchestrator for multi-agent loops. Developers usually pair this with LangGraph.
+No Native Orchestrator: Anthropic SDK provides the "tools" but not the Orchestrator for multi-agent loops. Developers usually pair this with LangGraph.
 
 Tighter ecosystem: Best when used with Anthropic models. Portability requires adaptors or compatibility layers.
 
@@ -66,7 +60,7 @@ Mature ecosystem: Many integrations (databases, search, APIs), templates, and co
 
 Graph structure:
 
-LangGraph is the "gold standard" for low-level control. Developers actually draw a map (graph) of your code and 100% control over the loo. For example, the agent cannot exit the loop unless you define an edge that leads to the END node.
+LangGraph is the "gold standard" for low-level control. Developers actually draw a map (graph) of your code and 100% control over the loop. For example, the agent cannot exit the loop unless you define an edge that leads to the END node.
 
 Model agnostic: Works with many LLM providers via configs and extensions.
 

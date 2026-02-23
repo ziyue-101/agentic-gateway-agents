@@ -9,6 +9,33 @@ from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_mcp_adapters.tools import load_mcp_tools
 from langchain_core.messages import HumanMessage, AIMessage
 
+# The standard path where the service account token is mounted.
+TOKEN_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+
+logging.basicConfig(
+    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
+
+def get_sa_token():
+    """Reads the service account token from the default location."""
+    try:
+        with open(TOKEN_PATH, "r") as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        logger.warning(f"Service account token file not found at {TOKEN_PATH}.")
+        logger.warning(f"This script is likely not running inside a Kubernetes pod.")
+        return None
+    except Exception as e:
+        logger.error(f"An error occurred while reading the token: {e}")
+        return None
+
+sa_token = get_sa_token()
+envoy_service = os.environ.get("ENVOY_SERVICE")
+
+# Add these lines to configure logging
+
+
 
 st.set_page_config(page_title="Gemini Agent", page_icon="🤖")
 st.title("🤖 Gemini Agent")
@@ -42,17 +69,23 @@ async def run_agent_interaction(user_input, chat_history):
     mcp_config = {}
 
     mcp_config["deepwiki"] = {
-        "url": "https://mcp.deepwiki.com/mcp",
-            "transport": "http",
-            "headers": { "x-k8s-sa-token": sa_token,}
+        "url": f"http://{envoy_service}/remote/mcp",
+            "transport": "streamable_http",
+            "headers": { "x-k8s-sa-token": sa_token,},
     }
 
-    mcp_config["calculator"] = {
-        "url": "http://server1-svc.mcp-server-calculator-system.svc.cluster.local:9000/mcp",
-            "transport": "http",
+    mcp_config["everythingmcp"] = {
+        "url": f"http://{envoy_service}/local/mcp",
+            "transport": "streamable_http",
+             "headers": { "x-k8s-sa-token": sa_token,},
     }
 
-    client = MultiServerMCPClient(mcp_config)
+    try:
+        logger.info(f"Attempting to create MultiServerMCPClient with config: {mcp_config}")
+        client = MultiServerMCPClient(mcp_config)
+        logger.info("MultiServerMCPClient created successfully.")
+    except Exception as e:
+        logger.error(f"Failed to create MultiServerMCPClient: {e}")
 
     # Start MCP Sessions for all configured servers
     async with contextlib.AsyncExitStack() as stack:
@@ -63,7 +96,11 @@ async def run_agent_interaction(user_input, chat_history):
         
         # Create Agent
         llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=api_key)
-        agent = create_agent(model=llm, tools=tools)
+        agent = create_agent(
+            model=llm,
+            tools=tools, 
+            system_prompt="You must use the available tools to answer the user's question. If you don't know the answer, say you can not find available tools to answer the question.",
+        )
         
         # Prepare the full message history (Context)
         # We append the new user input to the existing history
